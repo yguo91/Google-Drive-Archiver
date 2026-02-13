@@ -36,6 +36,7 @@ class MainWindow(QMainWindow):
         self._thread_pool = QThreadPool()
 
         self._setup_ui()
+        self._try_refresh_email()
         self._refresh_settings_display()
         self._connect_signals()
 
@@ -130,6 +131,22 @@ class MainWindow(QMainWindow):
         self.btnScan.clicked.connect(self._on_scan_clicked)
         self.btnArchiveAll.clicked.connect(self._on_archive_all_clicked)
         self.btnArchiveSelected.clicked.connect(self._on_archive_selected_clicked)
+
+    def _try_refresh_email(self) -> None:
+        """Refresh account email from Google if it's missing or unknown."""
+        email = self.config.account_email
+        if email and email not in ("", "Unknown"):
+            return
+        try:
+            from infra.auth import get_credentials, get_user_email
+            creds = get_credentials()
+            if creds:
+                fetched = get_user_email(creds)
+                if fetched and fetched != "Unknown":
+                    self.config.account_email = fetched
+                    self.config.save()
+        except Exception:
+            pass
 
     def _refresh_settings_display(self) -> None:
         """Update the settings display with current config values."""

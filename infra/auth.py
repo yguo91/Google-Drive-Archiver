@@ -124,9 +124,9 @@ def get_user_email(creds: Credentials) -> str:
     from googleapiclient.discovery import build
 
     try:
-        service = build("oauth2", "v2", credentials=creds)
-        user_info = service.userinfo().get().execute()
-        return user_info.get("email", "Unknown")
+        service = build("drive", "v3", credentials=creds)
+        about = service.about().get(fields="user").execute()
+        return about.get("user", {}).get("emailAddress", "Unknown")
     except Exception:
         return "Unknown"
 
