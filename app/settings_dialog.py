@@ -2,11 +2,11 @@
 
 from pathlib import Path
 
-from PySide6.QtCore import Slot
+from PySide6.QtCore import Slot, QDate
 from PySide6.QtWidgets import (
     QDialog, QFileDialog, QMessageBox, QVBoxLayout, QGroupBox,
     QFormLayout, QLineEdit, QPushButton, QSpinBox, QCheckBox,
-    QLabel, QDialogButtonBox
+    QLabel, QDialogButtonBox, QDateEdit, QHBoxLayout, QRadioButton
 )
 
 from app import load_icon
@@ -60,12 +60,27 @@ class SettingsDialog(QDialog):
         rules_group = QGroupBox("Rules")
         rules_layout = QFormLayout()
 
+        # Filter mode: size or date
+        self.radioFilterBySize = QRadioButton("Filter by file size")
+        self.radioFilterBySize.setChecked(True)
+        rules_layout.addRow("Filter mode:", self.radioFilterBySize)
+
         self.spinMinSizeMb = QSpinBox()
         self.spinMinSizeMb.setMinimum(10)
         self.spinMinSizeMb.setMaximum(102400)
         self.spinMinSizeMb.setValue(200)
         self.spinMinSizeMb.setSuffix(" MB")
-        rules_layout.addRow("Minimum file size:", self.spinMinSizeMb)
+        rules_layout.addRow("  Minimum file size:", self.spinMinSizeMb)
+
+        self.radioFilterByDate = QRadioButton("Filter by date")
+        rules_layout.addRow("", self.radioFilterByDate)
+
+        self.dateBeforeDate = QDateEdit()
+        self.dateBeforeDate.setCalendarPopup(True)
+        self.dateBeforeDate.setDisplayFormat("yyyy-MM-dd")
+        self.dateBeforeDate.setDate(QDate(2020, 1, 1))
+        self.dateBeforeDate.setEnabled(False)
+        rules_layout.addRow("  Modified before:", self.dateBeforeDate)
 
         self.chkDryRun = QCheckBox("Dry run (do not change anything)")
         self.chkDryRun.setChecked(True)
@@ -93,14 +108,27 @@ class SettingsDialog(QDialog):
         """Load current config values into widgets."""
         self.txtArchivePath.setText(self.config.archive_path)
         self.spinMinSizeMb.setValue(self.config.min_size_mb)
+        self.dateBeforeDate.setDate(QDate.fromString(self.config.before_date, "yyyy-MM-dd"))
+        if self.config.filter_mode == "date":
+            self.radioFilterByDate.setChecked(True)
+        else:
+            self.radioFilterBySize.setChecked(True)
+        self._on_filter_mode_changed()
         self.chkDryRun.setChecked(self.config.dry_run)
         self.chkTrashAfter.setChecked(self.config.trash_after)
 
     def _connect_signals(self) -> None:
         """Connect UI signals to handlers."""
         self.btnBrowseArchive.clicked.connect(self._on_browse_clicked)
+        self.radioFilterBySize.toggled.connect(self._on_filter_mode_changed)
         self.buttonBox.accepted.connect(self._on_accepted)
         self.buttonBox.rejected.connect(self.reject)
+
+    def _on_filter_mode_changed(self) -> None:
+        """Enable/disable controls based on selected filter mode."""
+        by_size = self.radioFilterBySize.isChecked()
+        self.spinMinSizeMb.setEnabled(by_size)
+        self.dateBeforeDate.setEnabled(not by_size)
 
     @Slot()
     def _on_browse_clicked(self) -> None:
@@ -142,7 +170,9 @@ class SettingsDialog(QDialog):
 
         # Save settings
         self.config.archive_path = archive_path
+        self.config.filter_mode = "size" if self.radioFilterBySize.isChecked() else "date"
         self.config.min_size_mb = self.spinMinSizeMb.value()
+        self.config.before_date = self.dateBeforeDate.date().toString("yyyy-MM-dd")
         self.config.dry_run = self.chkDryRun.isChecked()
         self.config.trash_after = self.chkTrashAfter.isChecked()
 

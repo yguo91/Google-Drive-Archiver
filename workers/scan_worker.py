@@ -32,15 +32,17 @@ class ScanWorker(QRunnable):
     progress updates during the scan.
     """
 
-    def __init__(self, min_size_mb: int):
+    def __init__(self, min_size_mb: int, before_date: str = ""):
         """
         Initialize the scan worker.
 
         Args:
             min_size_mb: Minimum file size in MB to include
+            before_date: Only include files modified before this date (YYYY-MM-DD), empty to skip
         """
         super().__init__()
         self.min_size_mb = min_size_mb
+        self.before_date = before_date
         self.signals = ScanWorkerSignals()
         self._cancelled = False
 
@@ -61,6 +63,7 @@ class ScanWorker(QRunnable):
             # Fetch files with progress updates
             files = client.list_files(
                 min_size_mb=self.min_size_mb,
+                before_date=self.before_date,
                 progress_callback=self._on_progress
             )
 
@@ -74,6 +77,7 @@ class ScanWorker(QRunnable):
             eligible = filter_eligible_files(
                 files,
                 min_size_mb=self.min_size_mb,
+                before_date=self.before_date,
                 include_google_docs=True
             )
 

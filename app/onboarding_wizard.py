@@ -144,12 +144,18 @@ class OnboardingWizard(QWizard):
         page_rules.setTitle("Rules")
         page_rules.setSubTitle("Configure archive rules")
 
-        from PySide6.QtWidgets import QSpinBox, QHBoxLayout
+        from PySide6.QtCore import QDate
+        from PySide6.QtWidgets import QSpinBox, QHBoxLayout, QDateEdit, QRadioButton
 
         layout = QVBoxLayout()
 
+        # Filter mode radio buttons
+        self.radioFilterBySize = QRadioButton("Filter by file size")
+        self.radioFilterBySize.setChecked(True)
+        layout.addWidget(self.radioFilterBySize)
+
         size_layout = QHBoxLayout()
-        size_label = QLabel("Minimum file size:")
+        size_label = QLabel("  Minimum file size:")
         size_layout.addWidget(size_label)
 
         self.spinMinSize = QSpinBox()
@@ -159,6 +165,27 @@ class OnboardingWizard(QWizard):
         self.spinMinSize.setSuffix(" MB")
         size_layout.addWidget(self.spinMinSize)
         layout.addLayout(size_layout)
+
+        self.radioFilterByDate = QRadioButton("Filter by date")
+        layout.addWidget(self.radioFilterByDate)
+
+        date_layout = QHBoxLayout()
+        date_label = QLabel("  Modified before:")
+        date_layout.addWidget(date_label)
+        self.dateBeforeDate = QDateEdit()
+        self.dateBeforeDate.setCalendarPopup(True)
+        self.dateBeforeDate.setDisplayFormat("yyyy-MM-dd")
+        self.dateBeforeDate.setDate(QDate(2020, 1, 1))
+        self.dateBeforeDate.setEnabled(False)
+        date_layout.addWidget(self.dateBeforeDate)
+        layout.addLayout(date_layout)
+
+        def _on_filter_mode_changed():
+            by_size = self.radioFilterBySize.isChecked()
+            self.spinMinSize.setEnabled(by_size)
+            self.dateBeforeDate.setEnabled(not by_size)
+
+        self.radioFilterBySize.toggled.connect(_on_filter_mode_changed)
 
         self.chkDryRun = QCheckBox("Dry run first (recommended)")
         self.chkDryRun.setChecked(True)
@@ -264,7 +291,9 @@ class OnboardingWizard(QWizard):
         self.config.is_connected = True
         self.config.account_email = self._account_email
         self.config.archive_path = self._archive_path
+        self.config.filter_mode = "size" if self.radioFilterBySize.isChecked() else "date"
         self.config.min_size_mb = self.spinMinSize.value()
+        self.config.before_date = self.dateBeforeDate.date().toString("yyyy-MM-dd")
         self.config.dry_run = self.chkDryRun.isChecked()
         self.config.trash_after = self.chkTrashAfter.isChecked()
 

@@ -62,8 +62,8 @@ class MainWindow(QMainWindow):
         self.lblArchiveFolder = QLabel("---")
         settings_layout.addRow("Archive folder:", self.lblArchiveFolder)
 
-        self.lblMinSize = QLabel("--- MB")
-        settings_layout.addRow("Minimum Size:", self.lblMinSize)
+        self.lblFilter = QLabel("---")
+        settings_layout.addRow("Filter:", self.lblFilter)
 
         self.lblDryRun = QLabel("On / Off")
         settings_layout.addRow("Dry run:", self.lblDryRun)
@@ -152,7 +152,10 @@ class MainWindow(QMainWindow):
         """Update the settings display with current config values."""
         self.lblAccountEmail.setText(self.config.account_email or "Not connected")
         self.lblArchiveFolder.setText(self.config.archive_path or "Not set")
-        self.lblMinSize.setText(f"{self.config.min_size_mb} MB")
+        if self.config.filter_mode == "date":
+            self.lblFilter.setText(f"Modified before {self.config.before_date}")
+        else:
+            self.lblFilter.setText(f"File size >= {self.config.min_size_mb} MB")
         self.lblDryRun.setText("On" if self.config.dry_run else "Off")
         self.lblTrashAfter.setText("On" if self.config.trash_after else "Off")
 
@@ -175,7 +178,10 @@ class MainWindow(QMainWindow):
         self._update_status("Scanning...")
         self._set_buttons_enabled(False)
 
-        self._scan_worker = ScanWorker(self.config.min_size_mb)
+        if self.config.filter_mode == "date":
+            self._scan_worker = ScanWorker(min_size_mb=0, before_date=self.config.before_date)
+        else:
+            self._scan_worker = ScanWorker(min_size_mb=self.config.min_size_mb, before_date="")
         self._scan_worker.signals.progress.connect(self._on_scan_progress)
         self._scan_worker.signals.finished.connect(self._on_scan_finished)
         self._scan_worker.signals.error.connect(self._on_scan_error)

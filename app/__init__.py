@@ -1,11 +1,20 @@
 # App module - UI controllers
 
+import sys
 from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QPixmap
 
+
+def get_base_path() -> Path:
+    """Get the base path for bundled resources (works both in dev and PyInstaller .exe)."""
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS)
+    return Path(__file__).parent.parent
+
+
 # Icon folder at project root
-ICON_DIR = Path(__file__).parent.parent / "Icon"
+ICON_DIR = get_base_path() / "Icon"
 
 
 def load_icon(filename: str) -> QIcon:

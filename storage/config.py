@@ -2,6 +2,7 @@
 
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -30,9 +31,15 @@ def get_token_path() -> Path:
 def get_credentials_path() -> Path:
     """Get the path to the OAuth credentials file.
 
-    First checks app directory, then config directory.
+    Checks bundled location (PyInstaller), then app directory, then config directory.
     """
-    # Check app directory first (for development)
+    # Check bundled location first (PyInstaller .exe)
+    if getattr(sys, "frozen", False):
+        bundled = Path(sys._MEIPASS) / "credentials.json"
+        if bundled.exists():
+            return bundled
+
+    # Check app directory (for development)
     app_dir = Path(__file__).parent.parent
     app_creds = app_dir / "credentials.json"
     if app_creds.exists():
@@ -51,7 +58,9 @@ DEFAULT_CONFIG = {
         "path": ""
     },
     "rules": {
+        "filter_mode": "size",
         "min_size_mb": 200,
+        "before_date": "2020-01-01",
         "dry_run": True,
         "trash_after": True
     }
@@ -133,12 +142,28 @@ class Config:
 
     # Rules settings
     @property
+    def filter_mode(self) -> str:
+        return self._data["rules"]["filter_mode"]
+
+    @filter_mode.setter
+    def filter_mode(self, value: str) -> None:
+        self._data["rules"]["filter_mode"] = value
+
+    @property
     def min_size_mb(self) -> int:
         return self._data["rules"]["min_size_mb"]
 
     @min_size_mb.setter
     def min_size_mb(self, value: int) -> None:
         self._data["rules"]["min_size_mb"] = value
+
+    @property
+    def before_date(self) -> str:
+        return self._data["rules"]["before_date"]
+
+    @before_date.setter
+    def before_date(self, value: str) -> None:
+        self._data["rules"]["before_date"] = value
 
     @property
     def dry_run(self) -> bool:

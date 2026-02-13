@@ -62,18 +62,20 @@ class DriveClient:
     def list_files(
         self,
         min_size_mb: int = 0,
+        before_date: str = "",
         page_size: int = 100,
         progress_callback: Optional[Callable[[int], None]] = None
     ) -> List[Dict[str, Any]]:
         """
-        List files in Drive that meet the size threshold.
+        List files in Drive that meet the size and date thresholds.
 
         The Drive API v3 does not support filtering by 'size' in the query
         parameter, so we fetch all non-trashed files owned by the user and
-        filter by size client-side.
+        filter by size client-side. Date filtering is done server-side.
 
         Args:
             min_size_mb: Minimum file size in MB
+            before_date: Only include files modified before this date (YYYY-MM-DD), empty to skip
             page_size: Number of results per API call
             progress_callback: Called with count of files found so far
 
@@ -85,6 +87,10 @@ class DriveClient:
         # Drive API v3 query: 'size' is NOT a valid query term,
         # so we filter client-side after fetching.
         query = "'me' in owners and trashed = false"
+
+        # Date filtering is supported server-side by the Drive API
+        if before_date:
+            query += f" and modifiedTime < '{before_date}T00:00:00'"
 
         files = []
         page_token = None

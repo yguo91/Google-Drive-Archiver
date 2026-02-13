@@ -46,6 +46,7 @@ SKIP_MIME_TYPES = {
 def is_eligible_file(
     file_info: FileInfo,
     min_size_mb: int,
+    before_date: str = "",
     include_google_docs: bool = True
 ) -> bool:
     """
@@ -53,12 +54,14 @@ def is_eligible_file(
 
     Eligibility criteria:
     - File size >= min_size_mb (for regular files)
+    - File modified before before_date (if set)
     - Not a Google Docs type that can't be exported
     - Not a folder or shortcut
 
     Args:
         file_info: File metadata
         min_size_mb: Minimum size threshold in MB
+        before_date: Only include files modified before this date (YYYY-MM-DD), empty to skip
         include_google_docs: Whether to include Google Docs files
 
     Returns:
@@ -67,6 +70,11 @@ def is_eligible_file(
     # Skip folders and special types
     if file_info.mime_type in SKIP_MIME_TYPES:
         return False
+
+    # Check date filter (modifiedTime is ISO format from Drive API)
+    if before_date and file_info.modified_time:
+        if file_info.modified_time[:10] >= before_date:
+            return False
 
     # Handle Google Docs types
     if file_info.mime_type in GOOGLE_DOC_TYPES:
@@ -80,6 +88,7 @@ def is_eligible_file(
 def filter_eligible_files(
     files: List[Dict[str, Any]],
     min_size_mb: int,
+    before_date: str = "",
     include_google_docs: bool = True
 ) -> List[FileInfo]:
     """
@@ -88,6 +97,7 @@ def filter_eligible_files(
     Args:
         files: List of file metadata dictionaries from Drive API
         min_size_mb: Minimum size threshold in MB
+        before_date: Only include files modified before this date (YYYY-MM-DD), empty to skip
         include_google_docs: Whether to include Google Docs files
 
     Returns:
@@ -97,7 +107,7 @@ def filter_eligible_files(
 
     for file_data in files:
         file_info = FileInfo(file_data)
-        if is_eligible_file(file_info, min_size_mb, include_google_docs):
+        if is_eligible_file(file_info, min_size_mb, before_date, include_google_docs):
             eligible.append(file_info)
 
     return eligible

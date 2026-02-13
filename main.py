@@ -42,8 +42,7 @@ def check_credentials() -> bool:
         "3. Enable the Google Drive API\n"
         "4. Create OAuth 2.0 credentials (Desktop app)\n"
         "5. Download the credentials JSON file\n"
-        "6. Save it as 'credentials.json' in the app folder:\n"
-        f"   {Path(__file__).parent}\n\n"
+        "6. Save it as 'credentials.json' in the app folder\n\n"
         "Then restart the application."
     )
     msg.setStandardButtons(QMessageBox.StandardButton.Ok)
